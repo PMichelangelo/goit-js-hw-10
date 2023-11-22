@@ -1,132 +1,84 @@
-import axios from "axios";
-import SlimSelect from 'slim-select';
+import { fetchBreeds, fetchCatByBreed } from "./cat-api";
+import Notiflix from "notiflix";
 
-// Встановлення заголовка для API-ключа
-axios.defaults.headers.common['x-api-key'] = 'live_iaDxtgV2xrBnpCnIAhmpGqwbb8GoakXvMjz0AUBnpJmKkOMhDvGz7ap7M8XPxpNQ';
+document.addEventListener('DOMContentLoaded', function () {
+  const breedSelect = document.querySelector('.breed-select');
+  const loader = document.querySelector('.loader');
+  const catInfo = document.querySelector('.cat-info');
 
-// URL API
-const API_URL = 'https://api.thecatapi.com/v1';
+  function toggleLoader(showLoader) {
+    if (showLoader) {
+      loader.classList.remove('hidden');
+    } else {
+      loader.classList.add('hidden');
+    }
+  }
 
-// Функція для показу завантажувача
-function showLoader(element) {
-  element.classList.add('loading');
+  function toggleError(showError) {
+  const errorParagraph = document.querySelector('.error');
+
+  if (showError) {
+    Notiflix.Notify.error('Error', 'Oops! Something went wrong! Try reloading the page!', 'Reload');
+    errorParagraph.classList.remove('hidden'); // показати надпис про помилку
+  } else {
+    errorParagraph.classList.add('hidden'); // приховати надпис про помилку
+  }
 }
 
-// Функція для приховання завантажувача
-function hideLoader(element) {
-  element.classList.remove('loading');
-}
-
-// Функція для показу помилки
-function showError(element) {
-  element.classList.add('error');
-  setTimeout(() => {
-    element.classList.remove('error');
-  }, 3000); // Приховати через 3 секунди
-}
-
-// Функція для отримання інформації про кота за породою
-function fetchCatByBreed(breedId) {
-  return axios.get(`${API_URL}/images/search?breed_ids=${breedId}`)
-    .then(response => response.data)
-    .catch(error => {
-      console.error('Error fetching cat information:', error.message);
-      throw error;
+  function populateBreedsSelect(breeds) {
+    breedSelect.innerHTML = '';
+    breeds.forEach(breed => {
+      const option = document.createElement('option');
+      option.value = breed.id;
+      option.textContent = breed.name;
+      breedSelect.appendChild(option);
     });
-}
+  }
 
-// Функція для отримання списку порід
-function fetchBreeds() {
-  return axios.get(`${API_URL}/breeds`)
-    .then(response => response.data)
-    .catch(error => {
-      console.error('Error fetching breeds:', error.message);
-      throw error;
-    });
-}
+  function handleBreedSelection() {
+    const selectedBreedId = breedSelect.value;
+    if (selectedBreedId) {
+      fetchCatInfo(selectedBreedId);
+    }
+  }
 
-// Функція для заповнення SlimSelect порідами
-function populateBreedsSelect(breeds) {
-  const selectElement = document.querySelector('.breed-select');
-  const loaderElement = document.querySelector('.loader');
-  const errorElement = document.querySelector('.error');
+  function displayCatInfo(cat) {
+    catInfo.innerHTML = `
+      <img src="${cat[0].url}" alt="Cat Image">
+      <h2>${cat[0].breeds[0].name}</h2>
+      <p>${cat[0].breeds[0].description}</p>
+      <p>Temperament: ${cat[0].breeds[0].temperament}</p>
+    `;
+  }
 
-  showLoader(loaderElement);
+  function handleCatInfoError(error) {
+    Notiflix.Report.Failure('Error', `Error loading cat information: ${error.message}`, 'Close');
+  }
 
-  // Приховати стандартний селект
-  selectElement.style.display = 'none';
+  function fetchCatInfo(breedId) {
+    toggleLoader(true);
+    catInfo.innerHTML = '';
+    toggleError(false);
 
-  loaderElement.style.display = 'none';
-  errorElement.style.display = 'none';
+    fetchCatByBreed(breedId)
+      .then(displayCatInfo)
+      .catch(handleCatInfoError)
+      .finally(() => {
+        toggleLoader(false);
+      });
+  }
 
-  // Створити масив для SlimSelect
-  const options = breeds.map(breed => ({ text: breed.name, value: breed.id }));
-
-  // Ініціалізувати SlimSelect
-  const slim = new SlimSelect({
-    select: selectElement,
-    placeholder: 'Select a breed',
-    allowDeselect: true,
-    data: options,
-    onChange: () => {
-      const selectedBreedId = slim.selected(); // Отримати обране значення
-      showLoader(loaderElement);
-
-      // Запит на отримання інформації про кота за породою
-      fetchCatByBreed(selectedBreedId)
-        .then(catInfo => {
-          displayCatInfo(catInfo);
-        })
-        .catch(error => {
-          console.error('Failed to fetch cat information:', error.message);
-          showError(errorElement);
-        })
-        .finally(() => {
-          hideLoader(loaderElement);
-        });
-    },
-  });
-}
-
-// Функція для відображення інформації про кота
-function displayCatInfo(catInfo) {
-  const catInfoElement = document.querySelector('.cat-info');
-
-  catInfoElement.innerHTML = '';
-
-  const imageElement = document.createElement('img');
-  imageElement.src = catInfo[0].url;
-
-  const breedNameElement = document.createElement('p');
-  breedNameElement.textContent = `Breed: ${catInfo[0].breeds[0].name}`;
-
-  const descriptionElement = document.createElement('p');
-  descriptionElement.textContent = `Description: ${catInfo[0].breeds[0].description}`;
-
-  const temperamentElement = document.createElement('p');
-  temperamentElement.textContent = `Temperament: ${catInfo[0].breeds[0].temperament}`;
-
-  catInfoElement.appendChild(imageElement);
-  catInfoElement.appendChild(breedNameElement);
-  catInfoElement.appendChild(descriptionElement);
-  catInfoElement.appendChild(temperamentElement);
-}
-
-// Очікування завантаження сторінки
-document.addEventListener('DOMContentLoaded', () => {
-  const loaderElement = document.querySelector('.loader');
-  const errorElement = document.querySelector('.error');
-
-  showLoader(loaderElement);
-
-  // Отримання і заповнення SlimSelect списку порід
+  toggleLoader(true);
   fetchBreeds()
-    .then(breeds => populateBreedsSelect(breeds))
-    .catch(error => {
-      console.error('Failed to fetch breeds:', error.message);
-      showError(errorElement);
+    .then((breeds) => {
+      populateBreedsSelect(breeds);
+    })
+    .catch(() => {
+      toggleError(true);
     })
     .finally(() => {
-      hideLoader(loaderElement);
+      toggleLoader(false);
     });
+
+  breedSelect.addEventListener('change', handleBreedSelection);
 });
