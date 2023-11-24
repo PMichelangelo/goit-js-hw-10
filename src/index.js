@@ -19,9 +19,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (showError) {
     Notiflix.Notify.error('Error', 'Oops! Something went wrong! Try reloading the page!', 'Reload');
-    errorParagraph.classList.remove('hidden'); // показати надпис про помилку
+    errorParagraph.classList.remove('hidden');
   } else {
-    errorParagraph.classList.add('hidden'); // приховати надпис про помилку
+    errorParagraph.classList.add('hidden');
   }
 }
 
@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', function () {
       option.textContent = breed.name;
       breedSelect.appendChild(option);
     });
+
+     breedSelect.style.display = 'block';
   }
 
   function handleBreedSelection() {
@@ -52,8 +54,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function handleCatInfoError(error) {
-    Notiflix.Report.Failure('Error', `Error loading cat information: ${error.message}`, 'Close');
-  }
+  Notiflix.Report.failure('Error', `Error loading cat information: ${error.message}`, 'Close');
+}
 
   function fetchCatInfo(breedId) {
     toggleLoader(true);
@@ -69,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   toggleLoader(true);
-  fetchBreeds()
+   fetchBreeds()
     .then((breeds) => {
       populateBreedsSelect(breeds);
     })

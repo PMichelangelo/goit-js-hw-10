@@ -6,7 +6,14 @@ axios.defaults.headers.common["x-api-key"] = apiKey;
 
 export function fetchBreeds() {
   return axios.get("https://api.thecatapi.com/v1/breeds")
-    .then(response => response.data)
+    .then(response => {
+      const data = response.data;
+      if (data && data.length > 0) {
+        return data
+      } else {
+        throw new Error ("Empty array received from the server")
+      }
+    })
     .catch(error => {
       console.error("Error fetching breeds:", error);
       throw error;
